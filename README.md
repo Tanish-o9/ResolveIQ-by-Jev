@@ -1,5 +1,10 @@
 # ⚡ ResolveIQ-by-Jev
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub: Tanish-o9](https://img.shields.io/badge/Author-Tanish--o9-181717.svg?logo=github)](https://github.com/Tanish-o9)
+[![Python: 3.13+](https://img.shields.io/badge/Python-3.13+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI: Modern](https://img.shields.io/badge/FastAPI-2.2.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+
 > **Autonomous Customer Support Triage & Agent Hub combining TypeSafe AI (Jev) calibrated decisions, Customer 360 CRM enrichment, Speech-to-Text voicemails, Incident Spikes clustering with Jira generation, Branded HTML emails, and a public Self-Service Portal.**
 
 ---
@@ -75,6 +80,7 @@ Traditional customer support systems fail because uncalibrated LLMs hallucinate 
 
 ### 1. Run Locally
 ```bash
+git clone https://github.com/Tanish-o9/ResolveIQ-by-Jev.git
 cd ResolveIQ-by-Jev
 pip install -r requirements.txt
 python app.py
@@ -84,7 +90,6 @@ python app.py
 
 ### 2. Run with Docker Compose
 ```bash
-cd ResolveIQ-by-Jev
 docker compose up --build
 ```
 
@@ -111,7 +116,20 @@ docker compose up --build
 ## 🧪 Running Automated Tests
 
 ```bash
-cd ResolveIQ-by-Jev
 python tests/test_triage.py
 ```
-> `Ran 10 tests in 0.075s — OK`
+> `Ran 10 tests in 0.046s — OK`
+
+---
+
+## 👨‍💻 Author & Contact
+
+Developed & Maintained by **Tanish Rajput**
+- 🐙 **GitHub:** [@Tanish-o9](https://github.com/Tanish-o9)
+- 💼 **Project Repository:** [https://github.com/Tanish-o9/ResolveIQ-by-Jev](https://github.com/Tanish-o9/ResolveIQ-by-Jev)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
