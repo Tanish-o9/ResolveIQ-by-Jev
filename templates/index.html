@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResolveIQ-by-Jev | Intelligent Support Triage</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-mark">⚡</div>
+        <div class="brand-text">
+          <h2>ResolveIQ-by-Jev</h2>
+          <small>TypeSafe AI + LangChain</small>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-tab active" data-tab="triageTab">
+          <span class="icon">🔍</span> Live Triage
+        </button>
+        <button class="nav-tab" data-tab="inboxTab" id="inboxTabBtn">
+          <span class="icon">📥</span> Ticket Inbox
+          <span class="badge-count" id="inboxCount">0</span>
+        </button>
+        <button class="nav-tab" data-tab="spikesTab" id="spikesTabBtn">
+          <span class="icon">🚨</span> Incident Spikes & Jira
+        </button>
+        <button class="nav-tab" data-tab="batchTab">
+          <span class="icon">📁</span> Batch Processing
+        </button>
+        <button class="nav-tab" data-tab="analyticsTab" id="analyticsTabBtn">
+          <span class="icon">📊</span> SLA & Analytics
+        </button>
+        <a href="/portal" target="_blank" class="nav-tab" style="text-decoration: none;">
+          <span class="icon">🌐</span> Customer Portal ↗
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <span class="pulse-dot"></span>
+          <span>System One Active</span>
+        </div>
+        <a href="/api/export-csv" class="btn-link" download>📥 Export Database (CSV)</a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- TAB 1: Live Triage Console -->
+      <section id="triageTab" class="tab-pane active">
+        <header class="top-bar">
+          <div>
+            <h1>Autonomous Support Triage & Action Hub</h1>
+            <p>Jev calibrated classification • CRM 360 • Sentiment & Churn analysis • Voice Note Ingestion • Automated Tool Calling</p>
+          </div>
+        </header>
+
+        <div class="grid-2col">
+          <!-- Input Card -->
+          <div class="card">
+            <h3>Customer Ticket Intake</h3>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="custName">Customer Name</label>
+                <input type="text" id="custName" value="Sarah Jenkins" />
+              </div>
+              <div class="form-group flex-1">
+                <label for="custTier">Customer Tier</label>
+                <select id="custTier">
+                  <option value="Free">Free</option>
+                  <option value="Pro" selected>Pro Tier</option>
+                  <option value="Enterprise">Enterprise (VIP SLA)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="ticket" style="margin-bottom: 0;">Ticket Message</label>
+                <button id="voiceBtn" class="btn-voice">🎙️ Speak / Voice Note</button>
+              </div>
+              <textarea id="ticket" rows="6">I was charged twice for my Pro subscription this morning. I need the duplicate charge refunded immediately or I will cancel our company account!</textarea>
+            </div>
+
+            <div class="examples-bar">
+              <span class="small-label">Scenarios:</span>
+              <button class="example-btn" data-name="Sarah Jenkins" data-tier="Pro" data-ticket="I was charged twice for my Pro subscription this morning. I need the duplicate charge refunded immediately or I will cancel our company account!">💳 Duplicate & Churn Threat</button>
+              <button class="example-btn" data-name="Amit Sharma" data-tier="Pro" data-ticket="Mujhe pichle mahine ka invoice chahiye aur subscription cancel karna hai, kripya refund initiate karo.">🇮🇳 Hindi / Hinglish Ticket</button>
+              <button class="example-btn" data-name="Alex Chen" data-tier="Enterprise" data-ticket="Critical: Our production webhook stopped delivering events after 2 PM. Our entire syncing pipeline is halted for 500+ users. Need an engineer immediately.">🔥 Enterprise Outage</button>
+              <button class="example-btn" data-name="Elena Rostova" data-tier="Pro" data-ticket="I cannot access the workspace after my admin changed my email address. Please restore access.">🔐 Account SSO Locked</button>
+            </div>
+
+            <div class="action-bar">
+              <button id="analyzeBtn" class="btn btn-primary">⚡ Analyze with Jev</button>
+              <span id="status" class="status-indicator"></span>
+            </div>
+          </div>
+
+          <!-- Live Output Card -->
+          <div class="card result-card" id="triageResultContainer">
+            <div id="emptyTriageState" class="empty-state">
+              <span class="empty-icon">📊</span>
+              <h4>No ticket analyzed yet</h4>
+              <p>Click "Analyze with Jev" to see calibrated model classifications, CRM 360 profile, sentiment analysis, and tool actions.</p>
+            </div>
+
+            <div id="results" class="results-wrapper hidden">
+              <!-- Header with ticket ID & SLA -->
+              <div class="result-header">
+                <div>
+                  <span class="ticket-id-tag" id="resTicketId">Ticket #--</span>
+                  <span class="lang-tag" id="resLangTag">🌐 English</span>
+                </div>
+                <div class="badges-row">
+                  <span class="sentiment-badge" id="resSentimentBadge">😊 Calm</span>
+                  <span class="sla-badge" id="resSlaBadge">SLA: 12h</span>
+                </div>
+              </div>
+
+              <!-- Customer 360 CRM Card -->
+              <div class="crm-card" id="resCrmCard">
+                <div class="crm-header">
+                  <div>
+                    <strong id="crmName">Customer</strong> • <span id="crmCompany" class="text-muted">Company</span>
+                  </div>
+                  <span id="crmHealthBadge" class="health-badge">Healthy</span>
+                </div>
+                <div class="crm-metrics">
+                  <div><small>MRR</small><strong id="crmMrr">$0</strong></div>
+                  <div><small>LTV</small><strong id="crmLtv">$0</strong></div>
+                  <div><small>Renewal In</small><strong id="crmRenewal">-- days</strong></div>
+                  <div><small>Account Lead</small><strong id="crmManager" style="font-size:12px;">--</strong></div>
+                </div>
+              </div>
+
+              <!-- Retention Playbook Banner -->
+              <div id="resRetentionBanner" class="retention-banner hidden">
+                <span class="retention-icon">⚠️</span>
+                <p id="resRetentionText"></p>
+              </div>
+
+              <!-- Jev 4 Decision Metrics -->
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <small>Department</small>
+                  <strong id="resDept">—</strong>
+                  <span class="metric-sub" id="resDeptConf">—% confidence</span>
+                </div>
+                <div class="metric-card">
+                  <small>Urgency Score</small>
+                  <strong id="resUrgency">—</strong>
+                  <span class="metric-sub">0–3 Rubric</span>
+                </div>
+                <div class="metric-card">
+                  <small>Refund Risk</small>
+                  <strong id="resRefund">—</strong>
+                  <span class="metric-sub">Calibrated Probability</span>
+                </div>
+                <div class="metric-card">
+                  <small>Human Review</small>
+                  <strong id="resHuman">—</strong>
+                  <span class="metric-sub">Risk Level</span>
+                </div>
+              </div>
+
+              <!-- Route Card -->
+              <div class="route-banner" id="resRouteBanner">
+                <div>
+                  <small>Deterministic Route</small>
+                  <h4 id="resRoute">—</h4>
+                  <p id="resReason">—</p>
+                </div>
+                <div id="resEscalationPill" class="pill-badge">Safe Queue</div>
+              </div>
+
+              <!-- Webhook Alert Notification -->
+              <div id="resWebhookAlert" class="webhook-alert-box hidden">
+                <span>🔔 <strong>Slack Alert Sent:</strong> High-priority incident dispatched to #support-urgent</span>
+              </div>
+
+              <!-- Grounded Knowledge Base Sources -->
+              <div class="kb-section">
+                <small class="section-sub">Grounded Knowledge Base Policy</small>
+                <div id="resKbContainer" class="kb-tags"></div>
+              </div>
+
+              <!-- Tool Calling Action Simulator -->
+              <div class="action-tools-card" id="actionToolsSection">
+                <small class="section-sub">⚡ Autonomous Tool Calling Actions</small>
+                <div class="tools-btn-group">
+                  <button id="stripeRefundBtn" class="btn btn-tool">💳 Issue Stripe Refund ($29)</button>
+                  <button id="auth0ResetBtn" class="btn btn-tool">🔑 Send Auth0 Password Reset</button>
+                  <button id="sessionUnlockBtn" class="btn btn-tool">🔄 Unlock Session & Re-invite</button>
+                </div>
+                <div id="toolExecutionReceipt" class="tool-receipt hidden"></div>
+              </div>
+
+              <!-- Human-in-the-Loop Suggested Reply -->
+              <div class="reply-section">
+                <div class="reply-header">
+                  <small class="section-sub">LangChain Policy-Grounded Draft</small>
+                  <span class="copy-link" id="copyReplyBtn">📋 Copy</span>
+                </div>
+                <textarea id="resReply" class="reply-editor" rows="4"></textarea>
+
+                <div class="human-actions">
+                  <button id="approveBtn" class="btn btn-success">✅ Approve & Resolve</button>
+                  <button id="emailPreviewBtn" class="btn btn-secondary">📧 Dispatch Branded Email</button>
+                  <button id="escalateBtn" class="btn btn-warning">⚠️ Escalate to Human</button>
+                  <select id="overrideDeptSelect" class="select-sm">
+                    <option value="">Override Dept...</option>
+                    <option value="billing">Billing</option>
+                    <option value="technical">Technical</option>
+                    <option value="account">Account</option>
+                    <option value="general">General</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Ticket Inbox & Thread History -->
+      <section id="inboxTab" class="tab-pane">
+        <header class="top-bar">
+          <div>
+            <h1>Ticket Inbox & Thread History</h1>
+            <p>SQLite persistent records with multi-turn conversation logs and tool audit trails.</p>
+          </div>
+          <div class="filter-controls">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="escalated">Needs Specialist</button>
+            <button class="filter-btn" data-filter="triaged">In Queue</button>
+            <button class="filter-btn" data-filter="resolved">Resolved</button>
+          </div>
+        </header>
+
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Language</th>
+                <th>Sentiment</th>
+                <th>Department</th>
+                <th>Urgency</th>
+                <th>SLA</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inboxTableBody">
+              <tr><td colspan="9" class="text-center">Loading ticket queue...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: Incident Spikes & Jira Auto-Generator -->
+      <section id="spikesTab" class="tab-pane">
+        <header class="top-bar">
+          <div>
+            <h1>Engineering Incident Spikes & Jira Auto-Generator</h1>
+            <p>Automated pattern clustering detecting active production regressions across customer tickets.</p>
+          </div>
+          <button id="refreshSpikesBtn" class="btn btn-secondary">🔄 Refresh Incidents</button>
+        </header>
+
+        <div id="spikesContainer" class="spikes-grid">
+          <div class="card text-center" style="grid-column: 1 / -1; padding: 40px;">
+            <p class="text-muted">Loading active incident clusters...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: Batch Processing & CSV -->
+      <section id="batchTab" class="tab-pane">
+        <header class="top-bar">
+          <div>
+            <h1>Batch Ticket Triage</h1>
+            <p>Process customer support CSV datasets concurrently with sentiment, language, and calibrated triage.</p>
+          </div>
+        </header>
+
+        <div class="grid-2col">
+          <div class="card">
+            <h3>Upload Support CSV</h3>
+            <p class="text-muted">CSV should contain a <code>ticket</code> column, and optionally <code>customer_name</code> and <code>customer_tier</code>.</p>
+
+            <div class="file-drop-zone" id="dropZone">
+              <span class="drop-icon">📄</span>
+              <p>Drag & drop support CSV here, or <strong>browse file</strong></p>
+              <input type="file" id="csvFileInput" accept=".csv" class="hidden-file" />
+            </div>
+
+            <div class="action-bar-spread">
+              <button id="loadDemoBatchBtn" class="btn btn-secondary">⚡ Load Demo Batch (3 Tickets)</button>
+              <button id="uploadCsvBtn" class="btn btn-primary" disabled>Process File</button>
+            </div>
+            <p id="batchStatus" class="status-indicator"></p>
+          </div>
+
+          <div class="card">
+            <h3>Batch Processing Summary</h3>
+            <div id="batchSummary" class="batch-summary-placeholder">
+              <p>Processed batch results will appear here in real time.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: Analytics & SLA Dashboard -->
+      <section id="analyticsTab" class="tab-pane">
+        <header class="top-bar">
+          <div>
+            <h1>Support SLA & Calibrated Metrics Dashboard</h1>
+            <p>Real-time analytics aggregated directly from triaged tickets, sentiment tracking, and routing rules.</p>
+          </div>
+          <button id="refreshAnalyticsBtn" class="btn btn-secondary">🔄 Refresh</button>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Total Tickets</span>
+            <h2 id="kpiTotal">0</h2>
+            <small>Processed through Jev</small>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Human Escalation Rate</span>
+            <h2 id="kpiEscalation">0%</h2>
+            <small>Gated by risk & churn</small>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Avg Urgency Score</span>
+            <h2 id="kpiUrgency">0.0</h2>
+            <small>0.0 (low) to 3.0 (critical)</small>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Avg Model Confidence</span>
+            <h2 id="kpiConfidence">0%</h2>
+            <small>Calibrated certainty</small>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <h3>Department Distribution</h3>
+            <div class="chart-wrapper">
+              <canvas id="deptChart"></canvas>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <h3>Urgency Rubric Breakdown</h3>
+            <div class="chart-wrapper">
+              <canvas id="urgencyChart"></canvas>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <h3>Customer Tier Volume</h3>
+            <div class="chart-wrapper">
+              <canvas id="tierChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Conversation Threading Modal -->
+  <div id="threadModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalThreadTitle">Ticket Thread</h3>
+        <button id="closeModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div id="modalMessagesContainer" class="messages-container"></div>
+      <div class="modal-footer">
+        <input type="text" id="followupInput" placeholder="Type a follow-up reply as agent..." />
+        <button id="sendFollowupBtn" class="btn btn-primary">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branded Email Preview Modal -->
+  <div id="emailModal" class="modal hidden">
+    <div class="modal-content" style="width: 660px;">
+      <div class="modal-header">
+        <h3>Branded Resolution Email Preview</h3>
+        <button id="closeEmailModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div id="emailPreviewFrame" style="padding: 16px; max-height: 60vh; overflow-y: auto; background: #e2e8f0; border-radius: 6px; margin: 16px;"></div>
+      <div class="modal-footer" style="justify-content: flex-end;">
+        <button id="confirmSendEmailBtn" class="btn btn-success">🚀 Dispatch Email</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
