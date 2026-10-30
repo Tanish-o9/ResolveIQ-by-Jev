@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResolveIQ Customer Self-Service Portal</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .portal-container {
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .portal-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .portal-header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .portal-header p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+    .back-nav {
+      margin-bottom: 20px;
+      display: inline-block;
+      font-size: 13px;
+      color: #a5b4fc;
+      text-decoration: none;
+    }
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+    }
+    .resolution-banner {
+      background: #1e1b4b;
+      border: 1px solid #4f46e5;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+    .resolution-banner h3 {
+      font-size: 16px;
+      color: #e0e7ff;
+      margin-bottom: 8px;
+    }
+    .resolution-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #c7d2fe;
+    }
+  </style>
+</head>
+<body style="overflow-y: auto;">
+  <div class="portal-container">
+    <a href="/" class="back-nav">← Back to Agent Console</a>
+    <div class="portal-header">
+      <div class="logo-mark" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 24px;">⚡</div>
+      <h1>ResolveIQ Customer Help Center</h1>
+      <p>Submit your inquiry for instant calibrated triage and automated resolution.</p>
+    </div>
+
+    <div class="portal-card">
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="pName">Your Name</label>
+          <input type="text" id="pName" placeholder="e.g. Sarah Jenkins" value="Sarah Jenkins" />
+        </div>
+        <div class="form-group flex-1">
+          <label for="pEmail">Email Address</label>
+          <input type="text" id="pEmail" placeholder="you@company.com" value="sarah@fintechpro.io" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="pTicket">Describe Your Issue</label>
+        <textarea id="pTicket" rows="5" placeholder="How can our support team assist you today?">I was charged twice for my subscription this morning. I need a refund for the duplicate charge ASAP.</textarea>
+      </div>
+
+      <button id="pSubmitBtn" class="btn btn-primary" style="width: 100%;">Submit Support Request</button>
+      <p id="pStatus" class="status-indicator" style="margin-top: 12px; text-align: center;"></p>
+
+      <div id="pResultBox" class="resolution-banner hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3 id="pResTitle">Instant Automated Resolution</h3>
+          <span id="pSlaTag" class="sla-badge">SLA: 2h</span>
+        </div>
+        <div id="pResBody" class="resolution-text"></div>
+        <div style="margin-top: 16px; display: flex; gap: 12px;">
+          <button id="pAcceptBtn" class="btn btn-success" style="font-size: 13px; padding: 6px 14px;">✅ This solved my problem</button>
+          <button id="pEscalateBtn" class="btn btn-warning" style="font-size: 13px; padding: 6px 14px;">🙋 Request Human Agent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pTicketId = null;
+    document.getElementById('pSubmitBtn').addEventListener('click', async () => {
+      const text = document.getElementById('pTicket').value.trim();
+      const name = document.getElementById('pName').value.trim();
+      const email = document.getElementById('pEmail').value.trim();
+      const status = document.getElementById('pStatus');
+      const box = document.getElementById('pResultBox');
+
+      if (text.length < 5) return;
+      status.textContent = 'Processing your inquiry with ResolveIQ...';
+      box.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticket: text, customer_name: name, customer_email: email, customer_tier: 'Pro' })
+        });
+        const data = await res.json();
+        pTicketId = data.id;
+
+        document.getElementById('pResTitle').textContent = `Resolution for Ticket #${data.id}`;
+        document.getElementById('pSlaTag').textContent = `SLA: ${data.automation.sla_hours}h`;
+        document.getElementById('pResBody').textContent = data.suggested_reply;
+
+        box.classList.remove('hidden');
+        status.textContent = '';
+      } catch (e) {
+        status.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('pAcceptBtn').addEventListener('click', async () => {
+      if (!pTicketId) return;
+      await fetch(`/api/tickets/${pTicketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+      alert('Thank you! Your ticket has been marked as resolved.');
+    });
+
+    document.getElementById('pEscalateBtn').addEventListener('click', async () => {
+      if (!pTicketId) return;
+      await fetch(`/api/tickets/${pTicketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'escalated' })
+      });
+      alert('Your ticket has been escalated to a live specialist engineer. You will receive an update shortly.');
+    });
+  </script>
+</body>
+</html>
+
