@@ -214,6 +214,23 @@ analyzeBtn.addEventListener('click', async () => {
     // Suggested reply
     document.getElementById('resReply').value = data.suggested_reply;
 
+    // Specialist handoff card
+    const handoffCard = document.getElementById('resHandoffCard');
+    const handoffText = document.getElementById('resHandoffText');
+    if (handoffCard && handoffText) {
+      if (data.handoff_brief) {
+        handoffText.textContent = data.handoff_brief;
+        handoffCard.classList.remove('hidden');
+      } else {
+        handoffCard.classList.add('hidden');
+      }
+    }
+
+    // Live SLA countdown timer
+    if (data.automation && data.automation.sla_hours) {
+      startSlaCountdown(data.automation.sla_hours);
+    }
+
     statusMsg.textContent = data.jev.is_simulated
       ? 'Evaluated via simulated Jev fallback (configure TYPESAFE_API_KEY for live API).'
       : 'Evaluated with live TypeSafe Jev API.';
@@ -677,6 +694,69 @@ async function updateInboxCount() {
     document.getElementById('inboxCount').textContent = list.length;
   } catch (e) {}
 }
+
+let slaInterval = null;
+function startSlaCountdown(hours) {
+  if (slaInterval) clearInterval(slaInterval);
+  const slaBadge = document.getElementById('resSlaBadge');
+  if (!slaBadge) return;
+  const deadline = Date.now() + hours * 3600 * 1000;
+
+  function tick() {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      slaBadge.textContent = '🚨 SLA BREACHED';
+      slaBadge.style.background = '#ef4444';
+      slaBadge.style.color = '#fff';
+      return;
+    }
+    const h = Math.floor(remainingMs / (3600 * 1000));
+    const m = Math.floor((remainingMs % (3600 * 1000)) / (60 * 1000));
+    const s = Math.floor((remainingMs % (60 * 1000)) / 1000);
+    const pad = n => String(n).padStart(2, '0');
+    slaBadge.textContent = `⏱️ SLA: ${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (remainingMs < 30 * 60 * 1000) {
+      slaBadge.style.background = '#f59e0b';
+      slaBadge.style.color = '#000';
+    } else {
+      slaBadge.style.background = 'rgba(30,41,59,0.7)';
+      slaBadge.style.color = '#cbd5e1';
+    }
+  }
+  tick();
+  slaInterval = setInterval(tick, 1000);
+}
+
+// AI Copilot Tone Tuner Listeners
+document.querySelectorAll('.btn-tone').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const tone = btn.getAttribute('data-tone');
+    const replyArea = document.getElementById('resReply');
+    const currentText = replyArea.value.trim();
+    if (!currentText) return;
+    const spinner = document.getElementById('toneSpinner');
+    if (spinner) spinner.classList.remove('hidden');
+    try {
+      const res = await fetch('/api/copilot/tune-tone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: currentText,
+          tone: tone,
+          customer_name: document.getElementById('custName')?.value.trim() || 'Customer',
+        }),
+      });
+      const data = await res.json();
+      if (data.tuned_reply) {
+        replyArea.value = data.tuned_reply;
+      }
+    } catch (err) {
+      console.error('Tone tuning error:', err);
+    } finally {
+      if (spinner) spinner.classList.add('hidden');
+    }
+  });
+});
 
 window.openThreadModal = openThreadModal;
 updateInboxCount();

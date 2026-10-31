@@ -179,7 +179,19 @@
                   <h4 id="resRoute">—</h4>
                   <p id="resReason">—</p>
                 </div>
-                <div id="resEscalationPill" class="pill-badge">Safe Queue</div>
+                <div class="route-badges" style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+                  <div id="resEscalationPill" class="pill-badge">Safe Queue</div>
+                  <div id="resSlaBadge" class="sla-timer-badge" style="font-size:12px; font-weight:700; color:#cbd5e1; background:rgba(30,41,59,0.7); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">⏱️ SLA: --:--:--</div>
+                </div>
+              </div>
+
+              <!-- Confidential Specialist Escalation Briefing -->
+              <div id="resHandoffCard" class="handoff-card hidden" style="margin-top:12px; padding:12px 14px; background:rgba(30, 41, 59, 0.9); border:1px solid rgba(239, 68, 68, 0.4); border-radius:8px; border-left:4px solid #ef4444;">
+                <div class="handoff-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="color:#f87171; font-size:13px; font-weight:700;">🔒 Specialist Hand-off Briefing (Confidential)</span>
+                  <span style="font-size:10px; background:#ef4444; color:#fff; padding:2px 6px; border-radius:4px; font-weight:700;">INTERNAL USE</span>
+                </div>
+                <div id="resHandoffText" style="font-size:12px; line-height:1.5; color:#cbd5e1; white-space:pre-wrap;"></div>
               </div>
 
               <!-- Webhook Alert Notification -->
@@ -211,6 +223,14 @@
                   <span class="copy-link" id="copyReplyBtn">📋 Copy</span>
                 </div>
                 <textarea id="resReply" class="reply-editor" rows="4"></textarea>
+
+                <div class="copilot-tone-bar" style="display:flex; align-items:center; gap:8px; margin:8px 0; padding:6px 10px; background:rgba(30,41,59,0.5); border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size:12px; color:#94a3b8; font-weight:600;">✨ Copilot Tone:</span>
+                  <button type="button" class="btn-tone" data-tone="formal" style="background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">👔 Formal</button>
+                  <button type="button" class="btn-tone" data-tone="empathetic" style="background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">🤝 Empathetic</button>
+                  <button type="button" class="btn-tone" data-tone="concise" style="background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">⚡ Concise</button>
+                  <span id="toneSpinner" class="hidden" style="font-size:11px; color:#38bdf8;">🔄 Tuning...</span>
+                </div>
 
                 <div class="human-actions">
                   <button id="approveBtn" class="btn btn-success">✅ Approve & Resolve</button>
