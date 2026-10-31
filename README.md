@@ -81,6 +81,10 @@ Traditional customer support systems fail because uncalibrated LLMs hallucinate 
   - `Issue Stripe Refund`: Executes simulated Stripe refund with transaction ID and receipt URL.
   - `Send Auth0 Reset`: Dispatches one-time password reset links.
   - `Unlock Session`: Revokes stale tokens and issues corporate workspace re-invites.
+- **✨ AI Copilot 1-Click Tone Tuner**: Rewrites draft replies into `Formal`, `Empathetic`, or `Concise` styles using Groq LLM or deterministic fallback transforms.
+- **⏱️ Live SLA Countdown Timer**: Real-time ticking deadline countdown with amber at-risk and red breach alerts.
+- **🔒 Specialist Hand-off Briefings**: Generates confidential internal dossier briefings (P1/P2 priority, LTV context, recommended playbooks) for human specialist escalations.
+- **📥 Inbound Webhook Ingestion API**: Direct webhook receiver (`POST /api/webhooks/incoming`) compatible with Zendesk, Stripe, Intercom, and custom CRM systems.
 - **😡 Sentiment & Churn Risk Meter**: Detects customer mood (`Calm`, `Frustrated`, `Angry`) and triggers retention courtesy discounts on cancellation threats.
 - **🌐 Multi-Language Detection**: Supports Hindi/Hinglish, Spanish, French, German, and English.
 - **🔔 Real-Time Webhook Alerting**: Dispatches instant rich alerts to `#support-urgent` in Slack or Discord.
@@ -115,6 +119,8 @@ docker compose up --build
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/analyze` | Triage ticket (PII guardrails, Jev scores, CRM 360, sentiment, SLA, draft reply) |
+| `POST` | `/api/copilot/tune-tone` | 1-Click AI rewrite of response into `formal`, `empathetic`, or `concise` tone |
+| `POST` | `/api/webhooks/incoming` | Inbound webhook ingestion for Zendesk, Stripe, Intercom ticket streaming |
 | `GET` | `/api/roi` | Real-time business ROI, deflection rate %, and net cost savings |
 | `GET` | `/api/benchmark` | Run golden test suite accuracy & calibration benchmark |
 | `POST` | `/api/tickets/{id}/csat` | Submit customer satisfaction rating (1-5 stars) and feedback |
