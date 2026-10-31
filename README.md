@@ -1,21 +1,29 @@
 # ⚡ ResolveIQ-by-Jev
 
+[![CI: Tests Passing](https://github.com/Tanish-o9/ResolveIQ-by-Jev/actions/workflows/ci.yml/badge.svg)](https://github.com/Tanish-o9/ResolveIQ-by-Jev/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub: Tanish-o9](https://img.shields.io/badge/Author-Tanish--o9-181717.svg?logo=github)](https://github.com/Tanish-o9)
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI: Modern](https://img.shields.io/badge/FastAPI-2.2.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![FastAPI: Modern](https://img.shields.io/badge/FastAPI-2.3.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-> **Autonomous Customer Support Triage & Agent Hub combining TypeSafe AI (Jev) calibrated decisions, Customer 360 CRM enrichment, Speech-to-Text voicemails, Incident Spikes clustering with Jira generation, Branded HTML emails, and a public Self-Service Portal.**
+> **Autonomous Enterprise Customer Support Triage & Agent Hub combining TypeSafe AI (Jev) calibrated decisions, Customer 360 CRM enrichment, PII Data Masking Guardrails, Business ROI Calculators, CSAT Prediction Loops, Speech-to-Text voicemails, Incident Spikes clustering, and a public Self-Service Portal.**
 
 ---
 
 ## 🎯 Architecture & Design Philosophy
 
-Traditional customer support systems fail because uncalibrated LLMs hallucinate policies, lack customer context, and cannot trigger real operations.
+Traditional customer support systems fail because uncalibrated LLMs hallucinate policies, leak sensitive customer data, lack account context, and cannot trigger real operations.
 
 **ResolveIQ-by-Jev implements an end-to-end autonomous customer support architecture:**
 ```
 [ Customer Input: Text, Audio/Voicemail, or Public Portal ]
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────┐
+│  Tier 0: Enterprise PII Guardrails & Data Privacy       │
+│  - Redacts credit cards, API secrets, passwords, SSNs   │
+│  - Sanitizes payload before sending to LLM / Database   │
+└─────────────────────────────┬───────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────┐
@@ -25,6 +33,7 @@ Traditional customer support systems fail because uncalibrated LLMs hallucinate 
 │  - 0-3 Urgency score rubric & Refund risk probability   │
 │  - Multi-language detection (Hindi, Spanish, French...) │
 │  - Sentiment analysis & Churn Threat Playbook           │
+│  - Predicted CSAT Satisfaction Rating (1 to 5 Stars)    │
 └─────────────────────────────┬───────────────────────────┘
                               │
                               ▼
@@ -50,13 +59,18 @@ Traditional customer support systems fail because uncalibrated LLMs hallucinate 
 │  - Dispatch Auth0 password reset & SSO tokens           │
 │  - Dispatch Branded HTML Resolution Email to Customer   │
 │  - Multi-turn conversation threading in SQLite          │
+│  - Real-time Business ROI and Agent Deflection Tracking │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ✨ Features
+## ✨ Enterprise Features
 
+- **🛡️ Enterprise PII Masker & Privacy Guardrails (SOC-2 / GDPR)**: Automatically detects and masks credit card numbers, secret API keys, passwords, SSNs, and phone numbers before ingestion.
+- **💰 Executive Business ROI & Cost-Savings Calculator**: Real-time tracking of Deflection Rate (%), Agent Hours Saved, and Net Dollar Savings ($25/hr human cost vs $0.0025 AI compute).
+- **⭐ Customer CSAT Rating & Feedback Loop**: Predicts satisfaction ratings (1–5 stars) and allows customers on `/portal` to submit live ratings; low ratings ($\le 2$) automatically trigger senior specialist escalation.
+- **🎯 AI Model Benchmark & Calibration Matrix**: Built-in evaluation runner against golden test datasets tracking Department Classification Accuracy (%), Urgency MAE, and Grounding Safety.
 - **🧠 TypeSafe Jev Calibrated Triage**: Calibrated department confidence, 0–3 urgency rubric, refund risk, and human review probability.
 - **👤 Customer 360° CRM Profile**: Enriches every ticket with real-time account data (Company, MRR, Lifetime Value, Renewal countdown, Assigned Account Manager, and Health Status).
 - **🎙️ Voice Note / Audio Voicemail Triage**: Built-in speech-to-text allowing customers or agents to speak tickets or upload voicemail recordings.
@@ -72,6 +86,7 @@ Traditional customer support systems fail because uncalibrated LLMs hallucinate 
 - **🔔 Real-Time Webhook Alerting**: Dispatches instant rich alerts to `#support-urgent` in Slack or Discord.
 - **💬 Threaded Conversations (Multi-turn Support)**: Multi-turn thread history where support agents and customers can post follow-up replies.
 - **📊 SLA & Analytics Dashboard**: Real-time charts powered by Chart.js displaying department split, urgency distribution, and tier volume.
+- **⚙️ GitHub Actions CI/CD Pipeline**: Continuous integration testing across multiple Python versions on every commit.
 - **🐳 Docker & Docker Compose**: Production-ready containerization for 1-command deployment.
 
 ---
@@ -99,7 +114,10 @@ docker compose up --build
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/analyze` | Triage ticket (Jev scores, CRM 360, sentiment, language, SLA, draft reply) |
+| `POST` | `/api/analyze` | Triage ticket (PII guardrails, Jev scores, CRM 360, sentiment, SLA, draft reply) |
+| `GET` | `/api/roi` | Real-time business ROI, deflection rate %, and net cost savings |
+| `GET` | `/api/benchmark` | Run golden test suite accuracy & calibration benchmark |
+| `POST` | `/api/tickets/{id}/csat` | Submit customer satisfaction rating (1-5 stars) and feedback |
 | `POST` | `/api/transcribe` | Transcribe audio voicemail into ticket text |
 | `GET` | `/api/engineering-spikes` | Detect incident spikes and get auto-generated Jira issue markdown |
 | `POST` | `/api/tickets/{id}/send-email` | Generate and dispatch branded HTML resolution email |
@@ -118,7 +136,7 @@ docker compose up --build
 ```bash
 python tests/test_triage.py
 ```
-> `Ran 10 tests in 0.046s — OK`
+> `Ran 15 tests in 0.346s — OK`
 
 ---
 
