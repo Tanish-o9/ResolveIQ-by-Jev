@@ -31,6 +31,10 @@ from services.crm_service import get_customer_crm_profile
 from services.audio_service import transcribe_audio_file
 from services.cluster_service import detect_incident_spikes
 from services.email_service import generate_branded_resolution_email
+from services.guardrails_service import sanitize_ticket_pii
+from services.roi_service import calculate_business_roi
+from services.csat_service import predict_csat_score
+from services.eval_service import run_model_benchmark
 from services.action_service import (
     execute_stripe_refund,
     execute_auth0_password_reset,
@@ -46,6 +50,7 @@ from services.db import (
     add_ticket_message,
     get_ticket_messages,
     record_action_taken,
+    record_csat_feedback,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -55,8 +60,8 @@ init_db()
 
 app = FastAPI(
     title="ResolveIQ-by-Jev",
-    version="2.2.0",
-    description="Autonomous Support Triage Hub with Calibrated AI, CRM 360, Voice Transcriptions, Incident Spikes & Tool Calling",
+    version="2.3.0",
+    description="Autonomous Enterprise Support Triage with Calibrated Jev, PII Guardrails, ROI Analytics & CSAT Loops",
 )
 
 app.mount(
@@ -94,6 +99,11 @@ class FollowupMessageRequest(BaseModel):
 class EmailDispatchRequest(BaseModel):
     subject: str = ""
     body: str = ""
+
+
+class CSATRequest(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    feedback: str = ""
 
 
 class BatchItem(BaseModel):
@@ -154,21 +164,12 @@ def choose_route(
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={},
-    )
+    return templates.TemplateResponse(request=request, name="index.html", context={})
 
 
 @app.get("/portal", response_class=HTMLResponse)
 def customer_portal(request: Request):
-    """Customer-Facing Self-Service Help Desk Portal."""
-    return templates.TemplateResponse(
-        request=request,
-        name="portal.html",
-        context={},
-    )
+    return templates.TemplateResponse(request=request, name="portal.html", context={})
 
 
 @app.get("/health")
@@ -178,18 +179,20 @@ def health():
 
 @app.post("/api/analyze")
 def analyze(payload: TicketRequest):
-    ticket = payload.ticket.strip()
+    raw_ticket = payload.ticket.strip()
+
+    # 1. PII Redaction Guardrails
+    pii_report = sanitize_ticket_pii(raw_ticket)
+    safe_ticket = pii_report.sanitized_text
 
     try:
-        decision = analyze_ticket(ticket)
+        decision = analyze_ticket(safe_ticket)
     except Exception as exc:
         logger.exception("Jev analysis failed")
         raise HTTPException(status_code=502, detail=f"Jev API error: {exc}") from exc
 
-    detected_lang = detect_language(ticket)
-    sentiment_data = analyze_sentiment(ticket)
-
-    # CRM 360 Account Enrichment
+    detected_lang = detect_language(safe_ticket)
+    sentiment_data = analyze_sentiment(safe_ticket)
     crm = get_customer_crm_profile(payload.customer_name or payload.customer_email, payload.customer_tier)
 
     route, needs_human, rule_reason, sla_hours = choose_route(
@@ -201,12 +204,14 @@ def analyze(payload: TicketRequest):
         churn_risk=sentiment_data.churn_risk_score,
     )
 
-    articles = search_knowledge_base(ticket, top_k=2)
+    predicted_csat = predict_csat_score(decision.urgency_score, sentiment_data.mood, needs_human)
+
+    articles = search_knowledge_base(safe_ticket, top_k=2)
     knowledge_snippets = [f"{a.title}: {a.content}" for a in articles]
 
     try:
         reply = draft_reply(
-            ticket,
+            safe_ticket,
             decision,
             route,
             customer_tier=payload.customer_tier,
@@ -220,7 +225,7 @@ def analyze(payload: TicketRequest):
         reply = f"Jev analysis completed. Draft generation fallback: {exc}"
 
     ticket_id = save_ticket(
-        ticket_text=ticket,
+        ticket_text=safe_ticket,
         department=decision.department,
         department_confidence=decision.department_confidence,
         urgency_score=decision.urgency_score,
@@ -256,7 +261,11 @@ def analyze(payload: TicketRequest):
 
     return {
         "id": ticket_id,
-        "ticket": ticket,
+        "ticket": safe_ticket,
+        "guardrails": {
+            "has_pii": pii_report.has_pii,
+            "redacted_items": pii_report.redacted_items,
+        },
         "customer": {
             "name": crm.name,
             "email": crm.email,
@@ -274,6 +283,7 @@ def analyze(payload: TicketRequest):
             "churn_risk_score": sentiment_data.churn_risk_score,
             "retention_playbook": sentiment_data.retention_playbook,
             "signals": sentiment_data.detected_signals,
+            "predicted_csat": predicted_csat,
         },
         "jev": {
             "model": decision.model,
@@ -300,9 +310,56 @@ def analyze(payload: TicketRequest):
     }
 
 
+@app.get("/api/roi")
+def get_roi_metrics():
+    """Calculates quantifiable time and cost savings compared to traditional human support."""
+    summary = get_analytics_summary()
+    total = summary.get("total_tickets", 0)
+    escalated = summary.get("escalated_count", 0)
+    roi = calculate_business_roi(total, escalated)
+    return {
+        "total_tickets": roi.total_tickets,
+        "deflected_tickets": roi.deflected_tickets,
+        "deflection_rate_pct": roi.deflection_rate_pct,
+        "agent_hours_saved": roi.agent_hours_saved,
+        "total_cost_saved_usd": roi.total_cost_saved_usd,
+        "ai_compute_cost_usd": roi.ai_compute_cost_usd,
+        "net_savings_usd": roi.net_savings_usd,
+        "avg_speedup_factor": roi.avg_speedup_factor,
+    }
+
+
+@app.get("/api/benchmark")
+def run_benchmark():
+    """Runs automated accuracy and calibration evaluation against the golden test suite."""
+    eval_res = run_model_benchmark()
+    return {
+        "total_eval_samples": eval_res.total_eval_samples,
+        "department_accuracy_pct": eval_res.department_accuracy_pct,
+        "urgency_mae": eval_res.urgency_mae,
+        "safety_grounding_score": eval_res.safety_grounding_score,
+        "detailed_metrics": eval_res.detailed_metrics,
+    }
+
+
+@app.post("/api/tickets/{ticket_id}/csat")
+def submit_csat(ticket_id: int, payload: CSATRequest):
+    """Submits customer satisfaction rating (1-5 stars). Low rating auto-escalates ticket."""
+    ticket = get_ticket(ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    success = record_csat_feedback(ticket_id, rating=payload.rating, feedback=payload.feedback)
+    return {
+        "status": "recorded",
+        "ticket_id": ticket_id,
+        "rating": payload.rating,
+        "escalated": payload.rating <= 2,
+    }
+
+
 @app.post("/api/transcribe")
 async def transcribe_voice_ticket(file: UploadFile = File(...)):
-    """Transcribes an uploaded voice recording or voicemail into text."""
     audio_bytes = await file.read()
     transcription = transcribe_audio_file(audio_bytes, filename=file.filename or "voicemail.wav")
     return {"transcription": transcription}
@@ -310,7 +367,6 @@ async def transcribe_voice_ticket(file: UploadFile = File(...)):
 
 @app.get("/api/engineering-spikes")
 def engineering_incident_spikes():
-    """Returns detected bug clusters and auto-generated GitHub/Jira issues for engineering teams."""
     tickets = get_tickets(limit=100)
     spikes = detect_incident_spikes(tickets)
     return {
@@ -330,7 +386,6 @@ def engineering_incident_spikes():
 
 @app.post("/api/tickets/{ticket_id}/send-email")
 def send_resolution_email(ticket_id: int, payload: EmailDispatchRequest):
-    """Dispatches a branded HTML resolution email to the customer."""
     ticket = get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -436,9 +491,12 @@ def analytics():
 def batch_analyze(payload: BatchRequest):
     results = []
     for item in payload.items:
-        text = item.ticket.strip()
-        if len(text) < 5:
+        raw_text = item.ticket.strip()
+        if len(raw_text) < 5:
             continue
+        pii = sanitize_ticket_pii(raw_text)
+        text = pii.sanitized_text
+
         decision = analyze_ticket(text)
         sentiment_data = analyze_sentiment(text)
         lang = detect_language(text)
