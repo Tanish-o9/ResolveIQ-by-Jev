@@ -26,6 +26,8 @@ from services.guardrails_service import sanitize_ticket_pii
 from services.roi_service import calculate_business_roi
 from services.csat_service import predict_csat_score
 from services.eval_service import run_model_benchmark
+from services.copilot_service import tune_response_tone
+from services.handoff_service import generate_specialist_handoff
 from services.db import (
     init_db,
     save_ticket,
@@ -164,6 +166,56 @@ class TestResolveIQByJev(unittest.TestCase):
         self.assertNotIn("4242-4242-4242-4242", data["ticket"])
         self.assertIn("customer", data)
         self.assertIn("predicted_csat", data["sentiment"])
+
+    def test_copilot_tone_tuner(self):
+        original = "We received your request. We cannot refund after 30 days."
+        formal = tune_response_tone(original, "formal", "Alice")
+        self.assertIn("Dear Alice", formal)
+        empathetic = tune_response_tone(original, "empathetic", "Alice")
+        self.assertIn("Alice", empathetic)
+        concise = tune_response_tone(original, "concise", "Alice")
+        self.assertTrue(len(concise.split()) < 40)
+
+    def test_specialist_handoff(self):
+        handoff = generate_specialist_handoff(
+            ticket_id=42,
+            customer_name="Globex Corp",
+            customer_tier="Enterprise",
+            ltv=12000.0,
+            department="billing",
+            urgency_score=2.8,
+            churn_risk=0.8,
+            rule_reason="Enterprise critical billing dispute",
+        )
+        self.assertIn("CONFIDENTIAL", handoff.briefing_markdown)
+        self.assertIn("Senior Billing Operations", handoff.target_specialist_team)
+        self.assertIn("CRITICAL", handoff.priority_level)
+
+    def test_copilot_endpoint(self):
+        resp = self.client.post(
+            "/api/copilot/tune-tone",
+            json={"text": "Please check your credentials and try again.", "tone": "concise", "customer_name": "Bob"}
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["tone"], "concise")
+        self.assertIn("tuned_reply", data)
+
+    def test_incoming_webhook_endpoint(self):
+        resp = self.client.post(
+            "/api/webhooks/incoming",
+            json={
+                "source": "zendesk",
+                "ticket_text": "Production API database is throwing 500 errors across all endpoints!",
+                "customer_name": "Dev Ops Lead",
+                "customer_tier": "Enterprise",
+            }
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "ingested")
+        self.assertTrue(data["ticket_id"] > 0)
+        self.assertIn("handoff_brief", data)
 
 
 if __name__ == "__main__":
