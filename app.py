@@ -179,11 +179,15 @@ def choose_route(
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse(request=request, name="index.html", context={})
 
 
 @app.get("/portal", response_class=HTMLResponse)
+@app.get("/api/index.py/portal", response_class=HTMLResponse)
+@app.get("/api/index/portal", response_class=HTMLResponse)
 def customer_portal(request: Request):
     return templates.TemplateResponse(request=request, name="portal.html", context={})
 
