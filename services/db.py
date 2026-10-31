@@ -74,6 +74,10 @@ def init_db() -> None:
             conn.execute("ALTER TABLE tickets ADD COLUMN language TEXT DEFAULT 'English'")
         if "actions_taken" not in columns:
             conn.execute("ALTER TABLE tickets ADD COLUMN actions_taken TEXT DEFAULT '[]'")
+        if "csat_rating" not in columns:
+            conn.execute("ALTER TABLE tickets ADD COLUMN csat_rating INTEGER NULL")
+        if "csat_feedback" not in columns:
+            conn.execute("ALTER TABLE tickets ADD COLUMN csat_feedback TEXT DEFAULT ''")
         conn.commit()
 
 
@@ -360,3 +364,17 @@ def get_analytics_summary() -> dict[str, Any]:
         "tier_counts": tier_counts,
         "sentiment_counts": sentiment_counts,
     }
+
+
+def record_csat_feedback(ticket_id: int, rating: int, feedback: str = "") -> bool:
+    """Records customer satisfaction rating (1-5 stars) and feedback comment."""
+    init_db()
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "UPDATE tickets SET csat_rating = ?, csat_feedback = ? WHERE id = ?",
+            (rating, feedback, ticket_id),
+        )
+        if rating <= 2:
+            conn.execute("UPDATE tickets SET status = 'escalated' WHERE id = ?", (ticket_id,))
+        conn.commit()
+        return cursor.rowcount > 0

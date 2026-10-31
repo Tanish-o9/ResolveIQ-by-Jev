@@ -90,9 +90,21 @@
           <span id="pSlaTag" class="sla-badge">SLA: 2h</span>
         </div>
         <div id="pResBody" class="resolution-text"></div>
-        <div style="margin-top: 16px; display: flex; gap: 12px;">
+        <div style="margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
           <button id="pAcceptBtn" class="btn btn-success" style="font-size: 13px; padding: 6px 14px;">✅ This solved my problem</button>
           <button id="pEscalateBtn" class="btn btn-warning" style="font-size: 13px; padding: 6px 14px;">🙋 Request Human Agent</button>
+        </div>
+
+        <div id="csatSection" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #4338ca;">
+          <small style="color: #c7d2fe; display: block; margin-bottom: 8px;">Rate this automated resolution (CSAT):</small>
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <button class="csat-star-btn" data-star="1">⭐ 1</button>
+            <button class="csat-star-btn" data-star="2">⭐ 2</button>
+            <button class="csat-star-btn" data-star="3">⭐ 3</button>
+            <button class="csat-star-btn" data-star="4">⭐ 4</button>
+            <button class="csat-star-btn" data-star="5">⭐ 5 (Great)</button>
+          </div>
+          <span id="csatFeedbackStatus" style="font-size: 12px; color: #a7f3d0;"></span>
         </div>
       </div>
     </div>
@@ -149,6 +161,22 @@
         body: JSON.stringify({ status: 'escalated' })
       });
       alert('Your ticket has been escalated to a live specialist engineer. You will receive an update shortly.');
+    });
+
+    document.querySelectorAll('.csat-star-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!pTicketId) return;
+        const rating = parseInt(btn.dataset.star, 10);
+        await fetch(`/api/tickets/${pTicketId}/csat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating: rating, feedback: 'Portal user rating' })
+        });
+        document.getElementById('csatFeedbackStatus').textContent = `Thank you! Rated ${rating}/5 stars.`;
+        if (rating <= 2) {
+          alert("We apologize that this did not meet your expectations. Your ticket has been automatically escalated to an on-call senior lead.");
+        }
+      });
     });
   </script>
 </body>
