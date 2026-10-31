@@ -40,6 +40,8 @@ from services.action_service import (
     execute_auth0_password_reset,
     execute_session_unlock,
 )
+from services.copilot_service import tune_response_tone
+from services.handoff_service import generate_specialist_handoff
 from services.db import (
     init_db,
     save_ticket,
@@ -114,6 +116,20 @@ class BatchItem(BaseModel):
 
 class BatchRequest(BaseModel):
     items: list[BatchItem]
+
+
+class ToneTuneRequest(BaseModel):
+    text: str = Field(min_length=5)
+    tone: str = Field(default="formal")
+    customer_name: str = "Customer"
+
+
+class IncomingWebhookPayload(BaseModel):
+    source: str = "custom"
+    ticket_text: str = Field(min_length=5)
+    customer_name: str = "Anonymous"
+    customer_email: str = ""
+    customer_tier: str = "Pro"
 
 
 def choose_route(
@@ -224,6 +240,20 @@ def analyze(payload: TicketRequest):
         logger.exception("Reply generation failed")
         reply = f"Jev analysis completed. Draft generation fallback: {exc}"
 
+    handoff_brief = None
+    if needs_human or decision.urgency_score >= 1.8 or crm.tier == "Enterprise":
+        handoff_obj = generate_specialist_handoff(
+            ticket_id=0,
+            customer_name=crm.name,
+            customer_tier=crm.tier,
+            ltv=crm.lifetime_value,
+            department=decision.department,
+            urgency_score=decision.urgency_score,
+            churn_risk=sentiment_data.churn_risk_score,
+            rule_reason=rule_reason,
+        )
+        handoff_brief = handoff_obj.briefing_markdown
+
     ticket_id = save_ticket(
         ticket_text=safe_ticket,
         department=decision.department,
@@ -244,6 +274,7 @@ def analyze(payload: TicketRequest):
         sentiment=sentiment_data.mood,
         churn_risk=sentiment_data.churn_risk_score,
         language=detected_lang,
+        internal_notes=handoff_brief or "",
     )
 
     webhook_result = None
@@ -307,6 +338,90 @@ def analyze(payload: TicketRequest):
             for a in articles
         ],
         "suggested_reply": reply,
+        "handoff_brief": handoff_brief,
+    }
+
+
+@app.post("/api/copilot/tune-tone")
+def api_tune_tone(payload: ToneTuneRequest):
+    """Rewrites a draft reply into Formal, Empathetic, or Concise tone via Groq LLM or deterministic fallback."""
+    tuned = tune_response_tone(
+        original_text=payload.text,
+        tone_mode=payload.tone,
+        customer_name=payload.customer_name,
+    )
+    return {"status": "ok", "tone": payload.tone, "tuned_reply": tuned}
+
+
+@app.post("/api/webhooks/incoming")
+def receive_incoming_webhook(payload: IncomingWebhookPayload):
+    """Inbound webhook ingestion endpoint for external systems (Zendesk, Stripe, Intercom, Salesforce).
+    Sanitizes PII, runs calibrated Jev triage, stores ticket, and triggers automated handoffs."""
+    pii_report = sanitize_ticket_pii(payload.ticket_text)
+    safe_ticket = pii_report.sanitized_text
+
+    decision = analyze_ticket(safe_ticket)
+    sentiment_data = analyze_sentiment(safe_ticket)
+    detected_lang = detect_language(safe_ticket)
+    crm = get_customer_crm_profile(payload.customer_name or payload.customer_email, payload.customer_tier)
+
+    route, needs_human, rule_reason, sla_hours = choose_route(
+        decision.department,
+        decision.department_confidence,
+        decision.urgency_score,
+        decision.human_review_probability,
+        customer_tier=payload.customer_tier,
+        churn_risk=sentiment_data.churn_risk_score,
+    )
+
+    handoff_brief = None
+    if needs_human or decision.urgency_score >= 1.8:
+        handoff_obj = generate_specialist_handoff(
+            ticket_id=0,
+            customer_name=crm.name,
+            customer_tier=crm.tier,
+            ltv=crm.lifetime_value,
+            department=decision.department,
+            urgency_score=decision.urgency_score,
+            churn_risk=sentiment_data.churn_risk_score,
+            rule_reason=rule_reason,
+        )
+        handoff_brief = handoff_obj.briefing_markdown
+
+    reply = f"Auto-triaged by ResolveIQ via inbound webhook ({payload.source}). Route: {route}."
+
+    ticket_id = save_ticket(
+        ticket_text=safe_ticket,
+        department=decision.department,
+        department_confidence=decision.department_confidence,
+        urgency_score=decision.urgency_score,
+        urgency_confidence=decision.urgency_confidence,
+        refund_probability=decision.refund_probability,
+        human_review_probability=decision.human_review_probability,
+        route=route,
+        needs_human=needs_human,
+        rule_reason=rule_reason,
+        sla_deadline_hours=sla_hours,
+        suggested_reply=reply,
+        customer_name=crm.name,
+        customer_email=crm.email,
+        customer_tier=crm.tier,
+        sentiment=sentiment_data.mood,
+        churn_risk=sentiment_data.churn_risk_score,
+        language=detected_lang,
+        internal_notes=handoff_brief or "",
+    )
+
+    return {
+        "status": "ingested",
+        "ticket_id": ticket_id,
+        "source": payload.source,
+        "department": decision.department,
+        "urgency_score": round(decision.urgency_score, 2),
+        "route": route,
+        "needs_human": needs_human,
+        "sla_hours": sla_hours,
+        "handoff_brief": handoff_brief,
     }
 
 
