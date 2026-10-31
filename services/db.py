@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(__file__).resolve().parent.parent / "triage.db"
+if os.getenv("VERCEL"):
+    DB_PATH = Path("/tmp/triage.db")
+else:
+    DB_PATH = Path(__file__).resolve().parent.parent / "triage.db"
 
 
 def get_connection() -> sqlite3.Connection:
