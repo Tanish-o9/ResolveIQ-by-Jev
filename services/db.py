@@ -44,6 +44,7 @@ def init_db() -> None:
                 churn_risk REAL DEFAULT 0.1,
                 language TEXT DEFAULT 'English',
                 actions_taken TEXT DEFAULT '[]',
+                internal_notes TEXT DEFAULT '',
                 status TEXT NOT NULL DEFAULT 'triaged',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 resolved_at TIMESTAMP NULL
@@ -78,6 +79,8 @@ def init_db() -> None:
             conn.execute("ALTER TABLE tickets ADD COLUMN csat_rating INTEGER NULL")
         if "csat_feedback" not in columns:
             conn.execute("ALTER TABLE tickets ADD COLUMN csat_feedback TEXT DEFAULT ''")
+        if "internal_notes" not in columns:
+            conn.execute("ALTER TABLE tickets ADD COLUMN internal_notes TEXT DEFAULT ''")
         conn.commit()
 
 
@@ -101,6 +104,7 @@ def save_ticket(
     sentiment: str = "Calm",
     churn_risk: float = 0.1,
     language: str = "English",
+    internal_notes: str = "",
 ) -> int:
     """Saves a triaged ticket and returns the new ticket ID."""
     init_db()
@@ -116,8 +120,8 @@ def save_ticket(
                 department, department_confidence, urgency_score, urgency_confidence,
                 refund_probability, human_review_probability, route, needs_human,
                 rule_reason, sla_deadline_hours, suggested_reply, final_reply,
-                knowledge_sources, sentiment, churn_risk, language, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                knowledge_sources, sentiment, churn_risk, language, internal_notes, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 ticket_text,
@@ -140,6 +144,7 @@ def save_ticket(
                 sentiment,
                 churn_risk,
                 language,
+                internal_notes,
                 initial_status,
             ),
         )
@@ -264,6 +269,7 @@ def update_ticket(
     status: str | None = None,
     final_reply: str | None = None,
     override_department: str | None = None,
+    internal_notes: str | None = None,
 ) -> bool:
     """Updates status, final reply, or overrides the department."""
     init_db()
@@ -284,6 +290,10 @@ def update_ticket(
     if override_department:
         updates.append("department = ?")
         params.append(override_department)
+
+    if internal_notes is not None:
+        updates.append("internal_notes = ?")
+        params.append(internal_notes)
 
     if not updates:
         return False
