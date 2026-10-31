@@ -125,6 +125,14 @@ analyzeBtn.addEventListener('click', async () => {
     document.getElementById('resSlaBadge').textContent = `SLA: ${data.automation.sla_hours}h Deadline`;
     document.getElementById('resLangTag').textContent = `🌐 ${data.language}`;
 
+    const piiTag = document.getElementById('resPiiTag');
+    if (data.guardrails && data.guardrails.has_pii) {
+      piiTag.classList.remove('hidden');
+      piiTag.textContent = `🛡️ PII Redacted (${data.guardrails.redacted_items.join(', ')})`;
+    } else {
+      piiTag.classList.add('hidden');
+    }
+
     // CRM 360 Card
     if (data.customer) {
       document.getElementById('crmName').textContent = data.customer.name;
@@ -632,10 +640,33 @@ async function loadAnalytics() {
         plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } },
       },
     });
+    // Load Business ROI metrics
+    try {
+      const roiRes = await fetch('/api/roi');
+      const roi = await roiRes.json();
+      document.getElementById('roiDeflection').textContent = `${roi.deflection_rate_pct}%`;
+      document.getElementById('roiHours').textContent = `${roi.agent_hours_saved} hrs`;
+      document.getElementById('roiSavings').textContent = `$${roi.net_savings_usd}`;
+    } catch (e) {}
   } catch (err) {
     console.error('Failed to load analytics', err);
   }
 }
+
+document.getElementById('runBenchmarkBtn')?.addEventListener('click', async () => {
+  const status = document.getElementById('benchStatus');
+  status.textContent = 'Running 6 golden test suite evaluations...';
+  try {
+    const res = await fetch('/api/benchmark');
+    const data = await res.json();
+    document.getElementById('benchAccuracy').textContent = `${data.department_accuracy_pct}%`;
+    document.getElementById('benchMae').textContent = `${data.urgency_mae} pts`;
+    document.getElementById('benchSafety').textContent = `${data.safety_grounding_score}%`;
+    status.textContent = `Completed evaluation on ${data.total_eval_samples} golden benchmark tickets.`;
+  } catch (err) {
+    status.textContent = 'Benchmark failed: ' + err.message;
+  }
+});
 
 document.getElementById('refreshAnalyticsBtn')?.addEventListener('click', loadAnalytics);
 

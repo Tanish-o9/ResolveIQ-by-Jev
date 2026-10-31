@@ -971,3 +971,29 @@ textarea:focus {
   display: flex;
   gap: 12px;
 }
+
+
+.pii-tag {
+  background: #064e3b;
+  border: 1px solid #059669;
+  color: #a7f3d0;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.csat-star-btn {
+  background: #1e1b4b;
+  border: 1px solid #4f46e5;
+  color: #e0e7ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.csat-star-btn:hover {
+  background: #4338ca;
+  color: #fff;
+}

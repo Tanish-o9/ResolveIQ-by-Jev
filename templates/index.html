@@ -118,6 +118,7 @@
                 <div>
                   <span class="ticket-id-tag" id="resTicketId">Ticket #--</span>
                   <span class="lang-tag" id="resLangTag">🌐 English</span>
+                  <span class="pii-tag hidden" id="resPiiTag">🛡️ PII Masked</span>
                 </div>
                 <div class="badges-row">
                   <span class="sentiment-badge" id="resSentimentBadge">😊 Calm</span>
@@ -372,6 +373,36 @@
             <div class="chart-wrapper">
               <canvas id="tierChart"></canvas>
             </div>
+          </div>
+        </div>
+
+        <!-- Executive Business ROI & Benchmark Grid -->
+        <div class="grid-2col" style="margin-top: 24px;">
+          <div class="card">
+            <h3>💰 Executive Business ROI & Efficiency Calculator</h3>
+            <div class="crm-metrics" style="grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px;">
+              <div><small>Autonomous Deflection</small><strong id="roiDeflection">0%</strong></div>
+              <div><small>Agent Hours Saved</small><strong id="roiHours">0 hrs</strong></div>
+              <div><small>Net Cost Savings</small><strong id="roiSavings" style="color:#34d399;">$0</strong></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px;">
+              *Based on industry benchmark $25/hr human agent cost vs $0.0025 AI compute cost per ticket.
+            </p>
+          </div>
+
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin-bottom: 0;">🎯 Model Calibration & Accuracy Matrix</h3>
+              <button id="runBenchmarkBtn" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;">Run Live Eval</button>
+            </div>
+            <div class="crm-metrics" style="grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px;">
+              <div><small>Triage Accuracy</small><strong id="benchAccuracy">--%</strong></div>
+              <div><small>Urgency Error (MAE)</small><strong id="benchMae">--</strong></div>
+              <div><small>Grounding Safety</small><strong id="benchSafety" style="color:#60a5fa;">--%</strong></div>
+            </div>
+            <p id="benchStatus" style="font-size: 12px; color: #a5b4fc; margin-top: 12px;">
+              Click 'Run Live Eval' to benchmark the decision engine against golden test datasets.
+            </p>
           </div>
         </div>
       </section>
